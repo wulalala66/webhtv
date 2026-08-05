@@ -128,6 +128,81 @@ public class DanmakuApi {
         return DanmakuSetting.isLoad() && DanmakuSetting.isAuto() && (DanmakuSetting.hasValidApiUrl() || hasBuiltinProviders());
     }
 
+    private static boolean hasBuiltinProviders() {
+        return !TextUtils.isEmpty(normalizeBaseUrl(BuildConfig.DANMAKU_PIZAZZ_BASE)) || !TextUtils.isEmpty(normalizeBaseUrl(BuildConfig.DANMAKU_UZDM_BASE));
+    }
+
+    public static boolean canAutoSearch(List<Danmaku> siteDanmakus) {
+        return canSearch() && (!DanmakuSetting.isSpiderFirst() || siteDanmakus == null || siteDanmakus.isEmpty());
+    }
+
+    public static Call newCall(String name, String episode) {
+        String url = DanmakuSetting.getValidApiUrl();
+        if (TextUtils.isEmpty(url)) url = DanmakuSetting.getEffectiveApiUrl();
+        if (TextUtils.isEmpty(url)) return null;
+        OkHttp.cancel(TAG);
+        name = Trans.t2s(false, name == null ? "" : name);
+        episode = Trans.t2s(false, episode == null ? "" : episode);
+        try {
+            if (url.contains("{name}") || url.contains("{episode}")) {
+                return OkHttp.newCall(url.replace("{name}", Uri.encode(name)).replace("{episode}", Uri.encode(episode)), TAG);
+            }
+            String base = normalizeBaseUrl(url);
+            if (!TextUtils.isEmpty(base) && !url.contains("?") && !url.contains("{")) {
+                String keyword = TextUtils.isEmpty(name) ? episode : name;
+                return OkHttp.newCall(base + API_SEARCH_EPISODES + "?anime=" + Uri.encode(keyword), TAG);
+            }
+            url = getSearchUrl(url);
+            ArrayMap<String, String> params = new ArrayMap<>();
+            params.put("name", name);
+            params.put("episode", episode);
+            return OkHttp.newCall(url, OkHttp.toBody(params), TAG);
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
+    }
+
+    private static String getSearchUrl(String url) {
+        if (TextUtils.isEmpty(url)) return "";
+        Uri uri = Uri.parse(url);
+        List<String> segments = uri.getPathSegments();
+        if (!segments.isEmpty() && "danmaku".equalsIgnoreCase(segments.get(segments.size() - 1))) return url;
+        if (segments.size() > 1) return url;
+        return uri.buildUpon().appendPath("danmaku").build().toString();
+    }
+
+    public static List<Danmaku> arrayFrom(String body) {
+        return normalize(Danmaku.arrayFrom(body));
+    }
+
+    private static List<Danmaku> normalize(List<Danmaku> items) {
+        if (items == null || items.isEmpty()) return items == null ? List.of() : items;
+        String apiUrl = getSearchUrl(DanmakuSetting.getValidApiUrl());
+        if (TextUtils.isEmpty(apiUrl)) apiUrl = normalizeBaseUrl(DanmakuSetting.getEffectiveApiUrl());
+        for (Danmaku item : items) {
+            if (!TextUtils.isEmpty(item.getUrl())) item.setUrl(normalizeResultUrl(apiUrl, item.getUrl()));
+        }
+        return items;
+    }
+
+    private static String normalizeResultUrl(String apiUrl, String url) {
+        try {
+            return com.fongmi.android.tv.player.danmaku.DanmakuUrlPolicy.normalize(apiUrl, url);
+        } catch (Throwable ignored) {
+            return url;
+        }
+    }
+
+    public static void search(String name, String episode, Consumer<Danmaku> found) {
+        searchAuto(name, episode, "", null, item -> {
+            if (item == null || item.isEmpty()) return;
+            String apiUrl = getSearchUrl(DanmakuSetting.getValidApiUrl());
+            if (TextUtils.isEmpty(apiUrl)) apiUrl = normalizeBaseUrl(DanmakuSetting.getEffectiveApiUrl());
+            if (!TextUtils.isEmpty(item.getUrl())) item.setUrl(normalizeResultUrl(apiUrl, item.getUrl()));
+            found.accept(item);
+        });
+    }
+
     public static Call newAnimeSearchCall(String keyword) {
         OkHttp.cancel(TAG);
         String url = normalizeBaseUrl(DanmakuSetting.getEffectiveApiUrl()) + API_SEARCH_ANIME + "?keyword=" + Uri.encode(Trans.t2s(false, keyword == null ? "" : keyword).trim());
