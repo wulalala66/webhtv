@@ -79,12 +79,12 @@
     },
     {
       "path": "app/src/leanback/java/com/fongmi/android/tv/ui/activity/VideoActivity.java",
-      "sha256": "2ac23c4edb20b4f47f668315657fdd778df9e066f5f81dc66a074ecfd834515d",
+      "sha256": "b9952ddd397a49e927190a1c741bc03f1d9a77c6a01e7271e183898b76002287",
       "mode": "replace"
     },
     {
       "path": "app/src/mobile/java/com/fongmi/android/tv/ui/activity/VideoActivity.java",
-      "sha256": "817cc0956be35f23c348a7705e81d324d669bfc4744041d94ada2a40ba35f7a0",
+      "sha256": "d45a804a5c9b41ebf7d500108f124d0568bfacbd5d32e5697839eae418e7577f",
       "mode": "replace"
     },
     {

@@ -1227,11 +1227,11 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
         List<Danmaku> siteDanmakus = result.getDanmaku();
         startPlayer(getHistoryKey(), result, isUseParse(), getSite().getTimeout(), buildMetadata());
         if (DanmakuApi.canAutoSearch(siteDanmakus)) {
-            String episodeName = getEpisode() == null ? "" : getEpisode().getName();
-            if (TextUtils.equals(mHistory.getVodName(), episodeName)) episodeName = "";
-            if (episodeName.matches("^(正片|全片|正片播放|播放|全集)$")) episodeName = "";
-            String sourceHint = resolveDanmakuSourceHint(result);
-            String title = mHistory == null ? "" : mHistory.getVodName();
+            final String title = mHistory == null ? "" : mHistory.getVodName();
+            String rawEpisode = getEpisode() == null ? "" : getEpisode().getName();
+            if (TextUtils.equals(title, rawEpisode) || rawEpisode.matches("^(正片|全片|正片播放|播放|全集)$")) rawEpisode = "";
+            final String episodeName = rawEpisode;
+            final String sourceHint = resolveDanmakuSourceHint(result);
             if (SpiderDebug.isEnabled()) SpiderDebug.log("danmaku", "auto search start title=%s episode=%s source=%s", title, episodeName, sourceHint);
             DanmakuApi.search(title, episodeName, sourceHint, mDetailVod, item -> {
                 if (item == null || item.isEmpty()) {
