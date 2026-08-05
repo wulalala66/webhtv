@@ -132,8 +132,20 @@ public class DanmakuApi {
         return !TextUtils.isEmpty(normalizeBaseUrl(BuildConfig.DANMAKU_PIZAZZ_BASE)) || !TextUtils.isEmpty(normalizeBaseUrl(BuildConfig.DANMAKU_UZDM_BASE));
     }
 
+    private static String resolveApiBase() {
+        String configured = normalizeBaseUrl(DanmakuSetting.getEffectiveApiUrl());
+        if (!TextUtils.isEmpty(configured)) return configured;
+        String pizazz = normalizeBaseUrl(BuildConfig.DANMAKU_PIZAZZ_BASE);
+        if (!TextUtils.isEmpty(pizazz)) return pizazz;
+        return normalizeBaseUrl(BuildConfig.DANMAKU_UZDM_BASE);
+    }
+
     public static boolean canAutoSearch(List<Danmaku> siteDanmakus) {
         return canSearch() && (!DanmakuSetting.isSpiderFirst() || siteDanmakus == null || siteDanmakus.isEmpty());
+    }
+
+    public static boolean canManualSearch() {
+        return DanmakuSetting.isLoad() && (DanmakuSetting.hasValidApiUrl() || hasBuiltinProviders() || !TextUtils.isEmpty(resolveApiBase()));
     }
 
     public static Call newCall(String name, String episode) {
@@ -178,7 +190,7 @@ public class DanmakuApi {
     private static List<Danmaku> normalize(List<Danmaku> items) {
         if (items == null || items.isEmpty()) return items == null ? List.of() : items;
         String apiUrl = getSearchUrl(DanmakuSetting.getValidApiUrl());
-        if (TextUtils.isEmpty(apiUrl)) apiUrl = normalizeBaseUrl(DanmakuSetting.getEffectiveApiUrl());
+        if (TextUtils.isEmpty(apiUrl)) apiUrl = resolveApiBase();
         for (Danmaku item : items) {
             if (!TextUtils.isEmpty(item.getUrl())) item.setUrl(normalizeResultUrl(apiUrl, item.getUrl()));
         }
@@ -194,10 +206,16 @@ public class DanmakuApi {
     }
 
     public static void search(String name, String episode, Consumer<Danmaku> found) {
-        searchAuto(name, episode, "", null, item -> {
+        search(name, episode, "", null, found);
+    }
+
+    public static void search(String name, String episode, String sourceHint, Vod vod, Consumer<Danmaku> found) {
+        String ep = episode == null ? "" : episode.trim();
+        if (!TextUtils.isEmpty(name) && TextUtils.equals(name.trim(), ep)) ep = "";
+        if (ep.matches("^(正片|全片|正片播放|播放|全集)$")) ep = "";
+        searchAuto(name, ep, sourceHint == null ? "" : sourceHint, vod, item -> {
             if (item == null || item.isEmpty()) return;
-            String apiUrl = getSearchUrl(DanmakuSetting.getValidApiUrl());
-            if (TextUtils.isEmpty(apiUrl)) apiUrl = normalizeBaseUrl(DanmakuSetting.getEffectiveApiUrl());
+            String apiUrl = resolveApiBase();
             if (!TextUtils.isEmpty(item.getUrl())) item.setUrl(normalizeResultUrl(apiUrl, item.getUrl()));
             found.accept(item);
         });
@@ -205,21 +223,27 @@ public class DanmakuApi {
 
     public static Call newAnimeSearchCall(String keyword) {
         OkHttp.cancel(TAG);
-        String url = normalizeBaseUrl(DanmakuSetting.getEffectiveApiUrl()) + API_SEARCH_ANIME + "?keyword=" + Uri.encode(Trans.t2s(false, keyword == null ? "" : keyword).trim());
+        String base = resolveApiBase();
+        if (TextUtils.isEmpty(base)) return null;
+        String url = base + API_SEARCH_ANIME + "?keyword=" + Uri.encode(Trans.t2s(false, keyword == null ? "" : keyword).trim());
         return OkHttp.newCall(url, TAG);
     }
 
     public static Call newBangumiCall(Danmaku anime) {
         OkHttp.cancel(TAG);
+        String base = resolveApiBase();
         String id = anime == null ? "" : anime.getBangumiId();
-        String url = normalizeBaseUrl(DanmakuSetting.getEffectiveApiUrl()) + API_BANGUMI + Uri.encode(id);
+        if (TextUtils.isEmpty(base) || TextUtils.isEmpty(id)) return null;
+        String url = base + API_BANGUMI + Uri.encode(id);
         return OkHttp.newCall(url, TAG);
     }
 
     public static Call newEpisodeSearchCall(Danmaku anime) {
         OkHttp.cancel(TAG);
+        String base = resolveApiBase();
         String title = anime == null ? "" : cleanAnimeSearchTitle(anime.getAnimeTitle());
-        String url = buildEpisodeSearchUrl(DanmakuSetting.getEffectiveApiUrl(), Trans.t2s(false, title).trim(), "");
+        if (TextUtils.isEmpty(base) || TextUtils.isEmpty(title)) return null;
+        String url = buildEpisodeSearchUrl(base, Trans.t2s(false, title).trim(), "");
         return OkHttp.newCall(url, TAG);
     }
 
@@ -566,7 +590,7 @@ public class DanmakuApi {
     }
 
     private static List<Danmaku> parseSearchResult(String body, String sourceHint, String episodeNumber, AutoTarget target) throws Exception {
-        return parseSearchResult(body, sourceHint, episodeNumber, target, normalizeBaseUrl(DanmakuSetting.getEffectiveApiUrl()));
+        return parseSearchResult(body, sourceHint, episodeNumber, target, resolveApiBase());
     }
 
     private static List<Danmaku> parseSearchResult(String body, String sourceHint, String episodeNumber, AutoTarget target, String baseUrl) throws Exception {
@@ -616,7 +640,7 @@ public class DanmakuApi {
     }
 
     private static List<Danmaku> parseMatchResult(String body, AutoTarget target) throws Exception {
-        return parseMatchResult(body, target, normalizeBaseUrl(DanmakuSetting.getEffectiveApiUrl()));
+        return parseMatchResult(body, target, resolveApiBase());
     }
 
     private static List<Danmaku> parseMatchResult(String body, AutoTarget target, String baseUrl) throws Exception {
@@ -903,11 +927,13 @@ public class DanmakuApi {
     }
 
     private static String buildCommentUrl(long episodeId) {
-        return buildCommentUrl(normalizeBaseUrl(DanmakuSetting.getEffectiveApiUrl()), episodeId);
+        return buildCommentUrl(resolveApiBase(), episodeId);
     }
 
     private static String buildCommentUrl(String baseUrl, long episodeId) {
         String base = normalizeBaseUrl(baseUrl);
+        if (TextUtils.isEmpty(base)) base = resolveApiBase();
+        if (TextUtils.isEmpty(base) || episodeId <= 0) return "";
         if (!TextUtils.isEmpty(BuildConfig.DANMAKU_PIZAZZ_BASE) && normalizeBaseUrl(BuildConfig.DANMAKU_PIZAZZ_BASE).equals(base)) return base + "/comment/" + episodeId + "?format=xml";
         return base + API_COMMENT + episodeId + "?format=xml";
     }

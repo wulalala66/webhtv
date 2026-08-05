@@ -9,7 +9,7 @@
   "files": [
     {
       "path": "app/src/main/java/com/fongmi/android/tv/api/DanmakuApi.java",
-      "sha256": "76800e4d96fd5c0748dea204d7e3cef8a91350954d9751f396214b6f98cff4ee",
+      "sha256": "6d57a214c501b394e59c596c1946f377cf720506dc0835c1a0fd6afde6233dc2",
       "mode": "replace"
     },
     {
@@ -75,6 +75,21 @@
     {
       "path": "scripts/sync-upstream-decision.py",
       "sha256": "76652a19b50336b7b92852384c21fe62358f77a4fae8e195c789d6d0da4fe38e",
+      "mode": "replace"
+    },
+    {
+      "path": "app/src/leanback/java/com/fongmi/android/tv/ui/activity/VideoActivity.java",
+      "sha256": "09fcbba544115cadc8411720b497f25f5757da964ba55f82ef5e4c730902eef9",
+      "mode": "replace"
+    },
+    {
+      "path": "app/src/mobile/java/com/fongmi/android/tv/ui/activity/VideoActivity.java",
+      "sha256": "1245c134f1b371cef5ce0d1489d97ab1b30fc7d4ff2007f8340ad81ba0656072",
+      "mode": "replace"
+    },
+    {
+      "path": "app/src/main/java/com/fongmi/android/tv/ui/dialog/DanmakuSearchDialog.java",
+      "sha256": "3b70e1079c0d9da255454af71d61fc5bdc59d1806e4a613d0155a18b7b199c2e",
       "mode": "replace"
     }
   ]
