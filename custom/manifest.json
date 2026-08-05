@@ -79,17 +79,32 @@
     },
     {
       "path": "app/src/leanback/java/com/fongmi/android/tv/ui/activity/VideoActivity.java",
-      "sha256": "09fcbba544115cadc8411720b497f25f5757da964ba55f82ef5e4c730902eef9",
+      "sha256": "2ac23c4edb20b4f47f668315657fdd778df9e066f5f81dc66a074ecfd834515d",
       "mode": "replace"
     },
     {
       "path": "app/src/mobile/java/com/fongmi/android/tv/ui/activity/VideoActivity.java",
-      "sha256": "1245c134f1b371cef5ce0d1489d97ab1b30fc7d4ff2007f8340ad81ba0656072",
+      "sha256": "817cc0956be35f23c348a7705e81d324d669bfc4744041d94ada2a40ba35f7a0",
       "mode": "replace"
     },
     {
       "path": "app/src/main/java/com/fongmi/android/tv/ui/dialog/DanmakuSearchDialog.java",
       "sha256": "3b70e1079c0d9da255454af71d61fc5bdc59d1806e4a613d0155a18b7b199c2e",
+      "mode": "replace"
+    },
+    {
+      "path": "app/src/main/java/com/fongmi/android/tv/setting/DanmakuSetting.java",
+      "sha256": "4f4822553f8a58436d91430ca605d84b651c2c1e42806902f61e848e937ccbe4",
+      "mode": "replace"
+    },
+    {
+      "path": "app/src/main/java/com/fongmi/android/tv/player/PlayerManager.java",
+      "sha256": "7934801103b32fbfc0ecf94401060455c6043786ef31971556a5b53118f3de83",
+      "mode": "replace"
+    },
+    {
+      "path": "app/src/main/java/com/fongmi/android/tv/ui/dialog/DanmakuDialog.java",
+      "sha256": "289a66a9789e8bd4154fbcc280151bd0ced14d5a2f6b0676633878cb4800f355",
       "mode": "replace"
     }
   ]

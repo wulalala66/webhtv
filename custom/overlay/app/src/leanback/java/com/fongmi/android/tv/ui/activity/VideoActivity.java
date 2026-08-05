@@ -1120,11 +1120,24 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
         startPlayer(getHistoryKey(), result, isUseParse(), getSite().getTimeout(), buildMetadata());
         SpiderDebug.log("video-flow", "startPlayer return cost=%dms sincePlayerStart=%dms", System.currentTimeMillis() - start, System.currentTimeMillis() - playerStartTime);
         if (DanmakuApi.canAutoSearch(siteDanmakus)) {
-            String episodeName = getEpisode().getName();
+            String episodeName = getEpisode() == null ? "" : getEpisode().getName();
             if (TextUtils.equals(mHistory.getVodName(), episodeName)) episodeName = "";
             if (episodeName.matches("^(正片|全片|正片播放|播放|全集)$")) episodeName = "";
             String sourceHint = resolveDanmakuSourceHint(result);
-            DanmakuApi.search(mHistory.getVodName(), episodeName, sourceHint, mDetailVod, player()::setDanmaku);
+            String title = mHistory == null ? "" : mHistory.getVodName();
+            if (SpiderDebug.isEnabled()) SpiderDebug.log("danmaku", "auto search start title=%s episode=%s source=%s", title, episodeName, sourceHint);
+            DanmakuApi.search(title, episodeName, sourceHint, mDetailVod, item -> {
+                if (item == null || item.isEmpty()) {
+                    if (SpiderDebug.isEnabled()) SpiderDebug.log("danmaku", "auto search miss title=%s episode=%s", title, episodeName);
+                    return;
+                }
+                if (SpiderDebug.isEnabled()) SpiderDebug.log("danmaku", "auto search hit name=%s episode=%s url=%s score=%s", item.getName(), item.getEpisodeTitle(), item.getUrl(), item.getMatchScore());
+                if (!DanmakuSetting.isShow()) {
+                    DanmakuSetting.putShow(true);
+                    player().setDanmakuEnabled(true);
+                }
+                player().setDanmaku(item);
+            });
         }
     }
 
