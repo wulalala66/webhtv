@@ -1,0 +1,81 @@
+{
+  "version": 1,
+  "builtin_source_url": "http://114.55.251.49:5244/d/tvbox/vod.json",
+  "update_repo": "wulalala66/webhtv",
+  "build_variants": [
+    "leanbackArmeabi_v7a",
+    "mobileArm64_v8a"
+  ],
+  "files": [
+    {
+      "path": "app/build.gradle",
+      "sha256": "9204a6e94a24fca7503e81833581907217381d31d34c28b6450adcee303da287",
+      "mode": "replace"
+    },
+    {
+      "path": "app/src/main/java/com/fongmi/android/tv/api/DanmakuApi.java",
+      "sha256": "25873e42f8aa1b953d86809b0c29f5d9894f7aba3378c44e4f9074131752ccc2",
+      "mode": "replace"
+    },
+    {
+      "path": "app/src/main/java/com/fongmi/android/tv/bean/Danmaku.java",
+      "sha256": "ee65dd1fe636af8338855d16be425d0005d1f6bf62d6962301583291ab266b95",
+      "mode": "replace"
+    },
+    {
+      "path": "app/src/main/java/com/fongmi/android/tv/bean/Config.java",
+      "sha256": "bb1b26baa0e4e2b6187dd66ac579ca1671f3336708327422ef084c0dbc19e28b",
+      "mode": "replace"
+    },
+    {
+      "path": "app/src/main/java/com/fongmi/android/tv/utils/Github.java",
+      "sha256": "a6913770f50402f765919abf38f8253b89f61adb9bcf89ebed58e285e4684afa",
+      "mode": "replace"
+    },
+    {
+      "path": "app/src/main/java/com/fongmi/android/tv/Updater.java",
+      "sha256": "06a9bdc841a705c1ccc364d90256c8d2cb3a653bcc088e9c30eb10d1b42988d7",
+      "mode": "replace"
+    },
+    {
+      "path": "app/src/mobile/java/com/fongmi/android/tv/ui/dialog/ConfigDialog.java",
+      "sha256": "5a297d0abeaf0088b7b0058516c01145d6370bdc6f4f065ef4db1728061e2014",
+      "mode": "replace"
+    },
+    {
+      "path": "app/src/leanback/java/com/fongmi/android/tv/ui/dialog/ConfigDialog.java",
+      "sha256": "8c1695b7627884197283e9e3d9f908bd868dfd2c1247f31c82971aeeef31efe7",
+      "mode": "replace"
+    },
+    {
+      "path": "app/src/leanback/java/com/fongmi/android/tv/ui/activity/SettingEnhanceActivity.java",
+      "sha256": "e210e2956c139cd714bd6c8985303951b8e7396e2d42cfcf72a28ad4f1faea6b",
+      "mode": "replace"
+    },
+    {
+      "path": "app/src/mobile/java/com/fongmi/android/tv/ui/fragment/SettingEnhanceFragment.java",
+      "sha256": "d98af3e0cb5966d90f6d26f10d39a4f6475b30e28bdaacbe69b53b990585d27f",
+      "mode": "replace"
+    },
+    {
+      "path": ".github/workflows/android-release.yml",
+      "sha256": "c3715a18bca16b01147603b9fc695a7631438c8b1a78238f9de339571780a6e8",
+      "mode": "replace"
+    },
+    {
+      "path": ".github/workflows/sync-upstream.yml",
+      "sha256": "994b6e275bf4664abd54ea401b3273aa60d0dd796a9478cfcead8093aba58c3a",
+      "mode": "replace"
+    },
+    {
+      "path": "scripts/apply-custom-overlay.sh",
+      "sha256": "6c8e1c897d53e9845d83a31138796a0c693b624e5be3bc76cc7532eefb7ebf0d",
+      "mode": "replace"
+    },
+    {
+      "path": "scripts/sync-upstream-decision.py",
+      "sha256": "76652a19b50336b7b92852384c21fe62358f77a4fae8e195c789d6d0da4fe38e",
+      "mode": "replace"
+    }
+  ]
+}
