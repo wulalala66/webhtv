@@ -128,85 +128,6 @@ public class DanmakuApi {
         return DanmakuSetting.isLoad() && DanmakuSetting.isAuto() && (DanmakuSetting.hasValidApiUrl() || hasBuiltinProviders());
     }
 
-    private static boolean hasBuiltinProviders() {
-        return !TextUtils.isEmpty(normalizeBaseUrl(BuildConfig.DANMAKU_PIZAZZ_BASE)) || !TextUtils.isEmpty(normalizeBaseUrl(BuildConfig.DANMAKU_UZDM_BASE));
-    }
-
-
-    public static boolean canAutoSearch(List<Danmaku> siteDanmakus) {
-        return canSearch() && (!DanmakuSetting.isSpiderFirst() || siteDanmakus == null || siteDanmakus.isEmpty());
-    }
-
-    public static Call newCall(String name, String episode) {
-        String url = DanmakuSetting.getValidApiUrl();
-        if (TextUtils.isEmpty(url)) url = DanmakuSetting.getEffectiveApiUrl();
-        if (TextUtils.isEmpty(url)) return null;
-        OkHttp.cancel(TAG);
-        name = Trans.t2s(false, name == null ? "" : name);
-        episode = Trans.t2s(false, episode == null ? "" : episode);
-        try {
-            if (url.contains("{name}") || url.contains("{episode}")) {
-                return OkHttp.newCall(url.replace("{name}", Uri.encode(name)).replace("{episode}", Uri.encode(episode)), TAG);
-            }
-            String base = normalizeBaseUrl(url);
-            if (!TextUtils.isEmpty(base) && !url.contains("?") && !url.contains("{")) {
-                // dandan-like base: use episode search for manual dialog keyword
-                String keyword = TextUtils.isEmpty(name) ? episode : name;
-                return OkHttp.newCall(base + API_SEARCH_EPISODES + "?anime=" + Uri.encode(keyword), TAG);
-            }
-            url = getSearchUrl(url);
-            ArrayMap<String, String> params = new ArrayMap<>();
-            params.put("name", name);
-            params.put("episode", episode);
-            return OkHttp.newCall(url, OkHttp.toBody(params), TAG);
-        } catch (IllegalArgumentException e) {
-            return null;
-        }
-    }
-
-    private static String getSearchUrl(String url) {
-        if (TextUtils.isEmpty(url)) return "";
-        Uri uri = Uri.parse(url);
-        List<String> segments = uri.getPathSegments();
-        if (!segments.isEmpty() && "danmaku".equalsIgnoreCase(segments.get(segments.size() - 1))) return url;
-        if (segments.size() > 1) return url;
-        return uri.buildUpon().appendPath("danmaku").build().toString();
-    }
-
-    public static List<Danmaku> arrayFrom(String body) {
-        return normalize(Danmaku.arrayFrom(body));
-    }
-
-    private static List<Danmaku> normalize(List<Danmaku> items) {
-        if (items == null || items.isEmpty()) return items == null ? List.of() : items;
-        String api = getSearchUrl(DanmakuSetting.getValidApiUrl());
-        if (TextUtils.isEmpty(api)) api = normalizeBaseUrl(DanmakuSetting.getEffectiveApiUrl());
-        for (Danmaku item : items) {
-            if (!TextUtils.isEmpty(item.getUrl())) item.setUrl(normalizeResultUrl(api, item.getUrl()));
-        }
-        return items;
-    }
-
-    private static String normalizeResultUrl(String api, String url) {
-        try {
-            return com.fongmi.android.tv.player.danmaku.DanmakuUrlPolicy.normalize(api, url);
-        } catch (Throwable ignored) {
-            return url;
-        }
-    }
-
-    public static void search(String name, String episode, Consumer<Danmaku> found) {
-        // Enhanced matching path from snow-movie (title clean / score / multi-provider).
-        searchAuto(name, episode, "", null, item -> {
-            if (item == null || item.isEmpty()) return;
-            String api = getSearchUrl(DanmakuSetting.getValidApiUrl());
-            if (TextUtils.isEmpty(api)) api = normalizeBaseUrl(DanmakuSetting.getEffectiveApiUrl());
-            if (!TextUtils.isEmpty(item.getUrl())) item.setUrl(normalizeResultUrl(api, item.getUrl()));
-            found.accept(item);
-        });
-    }
-
-
     public static Call newAnimeSearchCall(String keyword) {
         OkHttp.cancel(TAG);
         String url = normalizeBaseUrl(DanmakuSetting.getEffectiveApiUrl()) + API_SEARCH_ANIME + "?keyword=" + Uri.encode(Trans.t2s(false, keyword == null ? "" : keyword).trim());
@@ -241,39 +162,11 @@ public class DanmakuApi {
             if (AUTO_CACHE.size() > 256) AUTO_CACHE.clear();
             found.accept(item);
         };
-        if (DanmakuSetting.canUseAi()) {
-            cleanWithAi(target, cleaned -> searchWithMetadata(cleaned, cachedFound), e -> searchWithMetadata(target, cachedFound));
-            return;
-        }
-        searchWithMetadata(target, cachedFound);
+        searchOfficial(target, cachedFound);
     }
 
     private static void searchWithMetadata(AutoTarget target, Consumer<Danmaku> found) {
-        String token = DanmakuSetting.getTmdbToken();
-        if (TextUtils.isEmpty(token) || TextUtils.isEmpty(target.title)) {
-            searchOfficial(target, found);
-            return;
-        }
-        String url = TMDB_SEARCH + "?query=" + Uri.encode(target.title) + "&language=zh-CN&include_adult=false";
-        OkHttp.client(3500).newCall(new Request.Builder().url(url).header("Authorization", "Bearer " + token).build()).enqueue(new Callback() {
-            @Override public void onResponse(@NonNull Call call, @NonNull Response response) {
-                AutoTarget enriched = target;
-                try {
-                    String body = response.body() == null ? "" : response.body().string();
-                    if (response.isSuccessful()) {
-                        JSONArray results = new JSONObject(body).optJSONArray("results");
-                        if (results != null) for (int i = 0; i < Math.min(results.length(), 10); i++) {
-                            JSONObject item = results.optJSONObject(i);
-                            if (item == null || !("tv".equals(item.optString("media_type")) || "movie".equals(item.optString("media_type")))) continue;
-                            String title = firstNonEmpty(item.optString("name"), item.optString("title"));
-                            if (!TextUtils.isEmpty(title)) { enriched = target.withTitle(title); break; }
-                        }
-                    }
-                } catch (Exception e) { Log.w(TAG, "tmdb enrich failed", e); }
-                searchOfficial(enriched, found);
-            }
-            @Override public void onFailure(@NonNull Call call, @NonNull IOException e) { searchOfficial(target, found); }
-        });
+        searchOfficial(target, found);
     }
 
     private static void searchOfficial(AutoTarget target, Consumer<Danmaku> found) {
@@ -477,52 +370,14 @@ public class DanmakuApi {
     }
 
     public static void fetchAiModels(Consumer<List<String>> success, Consumer<Exception> error) {
-        OkHttp.cancel(TAG_AI);
-        String apiKey = DanmakuSetting.getAiApiKey();
-        if (TextUtils.isEmpty(apiKey)) {
-            App.post(() -> error.accept(new IllegalStateException("AI API Key is empty")));
-            return;
-        }
-        OkHttp.newCall(buildAiModelsUrl(), Map.of("Authorization", "Bearer " + apiKey)).enqueue(new Callback() {
-            @Override
-            public void onResponse(@NonNull Call call, @NonNull Response response) {
-                try {
-                    String body = response.body().string();
-                    List<String> models = parseAiModels(body);
-                    Log.i(TAG_AI, "models response code=" + response.code() + " count=" + models.size());
-                    App.post(() -> success.accept(models));
-                } catch (Exception e) {
-                    App.post(() -> error.accept(e));
-                }
-            }
-
-            @Override
-            public void onFailure(@NonNull Call call, @NonNull IOException e) {
-                App.post(() -> error.accept(e));
-            }
-        });
+        if (error != null) App.post(() -> error.accept(new IllegalStateException("AI disabled")));
     }
 
     public static void testAiMatch(String name, String episode, String sourceHint, Consumer<AiMatchTestResult> success, Consumer<Exception> error) {
-        OkHttp.cancel(TAG_AI);
-        if (!DanmakuSetting.hasAiApiKey()) {
-            App.post(() -> error.accept(new IllegalStateException("AI API Key is empty")));
-            return;
-        }
-        try {
-            AutoTarget target = AutoTarget.createForTest(name, episode, sourceHint);
-            long startedAt = System.currentTimeMillis();
-            cleanWithAiDetailed(target, data -> {
-                AiMatchTestResult result = new AiMatchTestResult(data.input, buildMatchFileName(data.target), data.rawResponse, List.of(), System.currentTimeMillis() - startedAt);
-                App.post(() -> success.accept(result));
-            }, error);
-        } catch (Exception e) {
-            App.post(() -> error.accept(e));
-        }
+        if (error != null) App.post(() -> error.accept(new IllegalStateException("AI disabled")));
     }
 
     public static void syncAiConfig() {
-        // AI配置保存在本机，匹配时直接调用配置的OpenAI兼容接口。
     }
 
     public static List<Danmaku> parseSearchResult(String body) throws Exception {
@@ -788,63 +643,11 @@ public class DanmakuApi {
     }
 
     private static void cleanWithAi(AutoTarget target, Consumer<AutoTarget> success, Consumer<Exception> error) {
-        cleanWithAiDetailed(target, result -> success.accept(result.target), error);
+        if (success != null) success.accept(target);
     }
 
     private static void cleanWithAiDetailed(AutoTarget target, Consumer<AiCleanResult> success, Consumer<Exception> error) {
-        try {
-            JSONObject input = new JSONObject(buildAiInput(target));
-            JSONObject request = new JSONObject();
-            request.put("model", DanmakuSetting.getAiModel());
-            request.put("temperature", 0);
-            request.put("response_format", new JSONObject().put("type", "json_object"));
-            JSONArray messages = new JSONArray();
-            messages.put(new JSONObject().put("role", "system").put("content", "你是影视文件名清洗器。只返回JSON对象，字段title、season、episode、year、media_type、confidence。media_type只能是tv/movie/anime/variety/unknown。不允许编造TMDB ID或弹幕ID；不确定字段返回null；不能把分辨率、编码、总集数或年份当成当前集数；未知季度不能默认第一季。"));
-            messages.put(new JSONObject().put("role", "user").put("content", input.toString()));
-            request.put("messages", messages);
-            RequestBody body = RequestBody.create(request.toString().getBytes(StandardCharsets.UTF_8), JSON);
-            String base = DanmakuSetting.getAiBaseUrl().replaceAll("/+$", "");
-            String url = base.endsWith("/chat/completions") ? base : base + "/chat/completions";
-            String apiKey = DanmakuSetting.getAiApiKey().replaceFirst("(?i)^Bearer\\s+", "").trim();
-            Request httpRequest = new Request.Builder().url(url).header("Authorization", "Bearer " + apiKey).post(body).tag(TAG_AI).build();
-            AtomicBoolean completed = new AtomicBoolean();
-            Call call = OkHttp.client(12000).newCall(httpRequest);
-            Runnable timeout = () -> {
-                if (!completed.compareAndSet(false, true)) return;
-                call.cancel();
-                error.accept(new IOException("AI request timed out after 15 seconds: " + url));
-            };
-            App.post(timeout, 15000);
-            Log.i(TAG_AI, "chat request url=" + url + " model=" + DanmakuSetting.getAiModel());
-            call.enqueue(new Callback() {
-                @Override public void onResponse(@NonNull Call call, @NonNull Response response) {
-                    try {
-                        String text = response.body() == null ? "" : response.body().string();
-                        if (!response.isSuccessful()) throw new IOException("HTTP " + response.code() + ": " + text);
-                        String content = new JSONObject(text).getJSONArray("choices").getJSONObject(0).getJSONObject("message").getString("content").trim();
-                        if (content.startsWith("```")) content = content.replaceFirst("^```(?:json)?\\s*", "").replaceFirst("\\s*```$", "");
-                        JSONObject result = new JSONObject(content);
-                        double confidence = result.optDouble("confidence", 0);
-                        String title = result.optString("title").trim();
-                        AutoTarget cleaned = confidence >= 0.6 && !TextUtils.isEmpty(title) ? target.withAi(result) : target;
-                        if (!completed.compareAndSet(false, true)) return;
-                        App.removeCallbacks(timeout);
-                        App.post(() -> success.accept(new AiCleanResult(cleaned, input.toString(), text)));
-                    } catch (Exception e) {
-                        if (!completed.compareAndSet(false, true)) return;
-                        App.removeCallbacks(timeout);
-                        App.post(() -> error.accept(e));
-                    }
-                }
-                @Override public void onFailure(@NonNull Call call, @NonNull IOException e) {
-                    if (!completed.compareAndSet(false, true)) return;
-                    App.removeCallbacks(timeout);
-                    App.post(() -> error.accept(e));
-                }
-            });
-        } catch (Exception e) {
-            App.post(() -> error.accept(e));
-        }
+        if (success != null) success.accept(new AiCleanResult(target, "", ""));
     }
 
     private static boolean isValidAnime(AutoTarget target, String animeTitle, String type, String typeDescription) {
@@ -1035,7 +838,7 @@ public class DanmakuApi {
     }
 
     private static String buildAiModelsUrl() {
-        String base = DanmakuSetting.getAiBaseUrl();
+        String base = "";
         while (base.endsWith("/")) base = base.substring(0, base.length() - 1);
         return base + "/models";
     }

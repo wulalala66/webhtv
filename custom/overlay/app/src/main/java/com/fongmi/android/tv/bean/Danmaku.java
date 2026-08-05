@@ -21,6 +21,12 @@ import java.util.stream.Collectors;
 
 public class Danmaku {
 
+    public static final String MATCH_AI = "ai";
+    public static final String MATCH_AUTO = "auto";
+    public static final String MATCH_DIRECT = "direct";
+    public static final String MATCH_MANUAL = "manual";
+
+
     @SerializedName("name")
     private String name;
     @SerializedName("url")
@@ -92,7 +98,7 @@ public class Danmaku {
         Danmaku danmaku = new Danmaku();
         danmaku.setName(path);
         danmaku.setUrl(path);
-        danmaku.setMatchType("manual");
+        danmaku.setMatchType(MATCH_MANUAL);
         return danmaku;
     }
 
@@ -216,11 +222,11 @@ public class Danmaku {
 
 
     public String getMatchType() {
-        return TextUtils.isEmpty(matchType) ? "direct" : matchType;
+        return TextUtils.isEmpty(matchType) ? MATCH_DIRECT : matchType;
     }
 
     public void setMatchType(String matchType) {
-        this.matchType = TextUtils.isEmpty(matchType) ? "direct" : matchType;
+        this.matchType = TextUtils.isEmpty(matchType) ? MATCH_DIRECT : matchType;
     }
 
     public String getAnimeId() {
