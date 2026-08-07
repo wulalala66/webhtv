@@ -54,7 +54,7 @@
     },
     {
       "path": "app/build.gradle",
-      "sha256": "9204a6e94a24fca7503e81833581907217381d31d34c28b6450adcee303da287",
+      "sha256": "57e492dce4531f078b893f5f3c35b93a5b0608e2967e1aa899ad5fd85488f014",
       "mode": "replace"
     },
     {
@@ -64,7 +64,7 @@
     },
     {
       "path": ".github/workflows/sync-upstream.yml",
-      "sha256": "994b6e275bf4664abd54ea401b3273aa60d0dd796a9478cfcead8093aba58c3a",
+      "sha256": "329dd915f75a8de328528ea64cbd9a1ac4346bb6c06794ef34ff7976f222eafd",
       "mode": "replace"
     },
     {
@@ -84,7 +84,7 @@
     },
     {
       "path": "app/src/mobile/java/com/fongmi/android/tv/ui/activity/VideoActivity.java",
-      "sha256": "d45a804a5c9b41ebf7d500108f124d0568bfacbd5d32e5697839eae418e7577f",
+      "sha256": "b9eb777aa1f5b9f3518d9134163f8054ce64ce48c422473d993cc23b866166a2",
       "mode": "replace"
     },
     {

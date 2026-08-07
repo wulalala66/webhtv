@@ -4449,7 +4449,7 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
     @Override
     protected void onTracksChanged() {
         updateAudioOnlyState();
-        suppressPiPForAudio();
+        syncPiPForPlaybackMode();
         refreshLyrics();
         setTrackVisible();
         mClock.setCallback(this);
@@ -5645,11 +5645,11 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
         syncLyricsPlaybackState(isPlaying);
         syncKaraokePosition();
         if (isPlaying) {
-            if (!suppressPiPForAudio()) mPiP.update(this, true);
+            if (!syncPiPForPlaybackMode()) mPiP.update(this, true);
             mBinding.control.play.setImageResource(androidx.media3.ui.R.drawable.exo_icon_pause);
             checkAudioPlayImg(true);
         } else if (isPaused()) {
-            if (!suppressPiPForAudio()) mPiP.update(this, false);
+            if (!syncPiPForPlaybackMode()) mPiP.update(this, false);
             mBinding.control.play.setImageResource(androidx.media3.ui.R.drawable.exo_icon_play);
             checkAudioPlayImg(false);
         }
@@ -6228,7 +6228,7 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
 
     private boolean preparePiP(String reason) {
         if (isRedirect() || isPlaybackExiting()) return false;
-        if (suppressPiPForAudio()) return false;
+        if (syncPiPForPlaybackMode()) return false;
         if (service() == null || !player().haveTrack(C.TRACK_TYPE_VIDEO)) return false;
         mPiP.update(this, player().getVideoWidth(), player().getVideoHeight(), getScale());
         return true;
@@ -6241,21 +6241,19 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
     }
 
     private boolean enterPiP(String reason) {
-        if (suppressPiPForAudio()) return false;
+        if (syncPiPForPlaybackMode()) return false;
         if (service() == null || !player().haveTrack(C.TRACK_TYPE_VIDEO)) return false;
         return mPiP.enter(this, player().getVideoWidth(), player().getVideoHeight(), getScale());
     }
 
-    private boolean suppressPiPForAudio() {
-        if (!isAudioContentForPiP()) return false;
-        mPiP.disableAutoEnter(this);
-        return true;
+    private boolean syncPiPForPlaybackMode() {
+        boolean audioMode = isAudioBackgroundMode();
+        if (mPiP != null) mPiP.setAudioMode(this, audioMode);
+        return audioMode;
     }
 
-    private boolean isAudioContentForPiP() {
-        if (service() == null) return false;
-        updateAudioOnlyState();
-        return isAudioOnly() || isMusicLike() || LyricsController.isAudioContent(player());
+    private boolean isAudioBackgroundMode() {
+        return mAudioStageVisible || isAudioOnly();
     }
 
     @Override
