@@ -1,0 +1,155 @@
+name: Sync Upstream + Custom Overlay
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+    inputs:
+      force_build:
+        description: "Force build even if only removed-paths changed"
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+  actions: write
+  issues: write
+
+concurrency:
+  group: sync-upstream
+  cancel-in-progress: false
+
+env:
+  TZ: Asia/Shanghai
+  UPSTREAM_REPO: fish2018/webhtv
+  UPSTREAM_BRANCH: main
+
+jobs:
+  sync:
+    name: Sync upstream and re-apply custom
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    outputs:
+      should_build: ${{ steps.decide.outputs.should_build }}
+      upstream_sha: ${{ steps.decide.outputs.upstream_sha }}
+      skip_reason: ${{ steps.decide.outputs.skip_reason }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure git
+        run: |
+          git config user.name "webhtv-sync-bot"
+          git config user.email "webhtv-sync-bot@users.noreply.github.com"
+
+      - name: Add upstream remote
+        run: |
+          if git remote get-url upstream >/dev/null 2>&1; then
+            git remote set-url upstream "https://github.com/${UPSTREAM_REPO}.git"
+          else
+            git remote add upstream "https://github.com/${UPSTREAM_REPO}.git"
+          fi
+          git fetch upstream "${UPSTREAM_BRANCH}" --tags --force
+
+      - name: Decide sync/build
+        id: decide
+        env:
+          FORCE_BUILD: ${{ inputs.force_build || false }}
+        run: |
+          BASE_SHA="$(git rev-parse HEAD 2>/dev/null || true)"
+          if [[ -f custom/upstream-base.sha ]]; then
+            BASE_SHA="$(cat custom/upstream-base.sha | tr -d '\n')"
+          fi
+          export UPSTREAM_BASE="$BASE_SHA"
+          python3 scripts/sync-upstream-decision.py | tee /tmp/decision.env
+          SHOULD_SYNC=$(grep '^should_sync=' /tmp/decision.env | cut -d= -f2)
+          SHOULD_BUILD=$(grep '^should_build=' /tmp/decision.env | cut -d= -f2)
+          UPSTREAM_SHA=$(grep '^upstream_sha=' /tmp/decision.env | cut -d= -f2)
+          SKIP_REASON=$(grep '^skip_reason=' /tmp/decision.env | cut -d= -f2- || true)
+          if [[ "$FORCE_BUILD" == "true" ]]; then
+            SHOULD_BUILD=true
+          fi
+          {
+            echo "should_sync=$SHOULD_SYNC"
+            echo "should_build=$SHOULD_BUILD"
+            echo "upstream_sha=$UPSTREAM_SHA"
+            echo "skip_reason=$SKIP_REASON"
+          } >> "$GITHUB_OUTPUT"
+          echo "Decision sync=$SHOULD_SYNC build=$SHOULD_BUILD upstream=$UPSTREAM_SHA reason=$SKIP_REASON"
+
+      - name: Reset to upstream and apply overlay
+        if: steps.decide.outputs.should_sync == 'true'
+        run: |
+          set -euo pipefail
+          UPSTREAM_SHA="${{ steps.decide.outputs.upstream_sha }}"
+          # keep custom/ across reset (use staging dir to avoid cp -a nesting)
+          tmpdir=$(mktemp -d)
+          mkdir -p "$tmpdir/custom"
+          cp -a custom/. "$tmpdir/custom/"
+          git checkout -B main "$UPSTREAM_SHA"
+          rm -rf custom
+          mkdir -p custom
+          cp -a "$tmpdir/custom/." custom/
+          mkdir -p scripts .github/workflows
+          cp -a custom/apply-custom-overlay.sh scripts/
+          cp -a custom/sync-upstream-decision.py scripts/
+          cp -a custom/github/workflows/. .github/workflows/
+          bash scripts/apply-custom-overlay.sh
+          # re-assert custom machinery after file overlays
+          cp -a custom/apply-custom-overlay.sh scripts/
+          cp -a custom/sync-upstream-decision.py scripts/
+          cp -a custom/github/workflows/. .github/workflows/
+          echo "$UPSTREAM_SHA" > custom/upstream-base.sha
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No changes after overlay"
+          else
+            git commit -m "sync: upstream ${UPSTREAM_SHA:0:7} + custom overlay"
+          fi
+          git push origin main --force-with-lease
+
+      - name: Skip build note
+        if: steps.decide.outputs.should_build != 'true'
+        run: |
+          reason="${{ steps.decide.outputs.skip_reason }}"
+          echo "Skip build: ${reason:-no build needed}"
+          if [[ "$reason" == "upstream_only_removed_paths" ]]; then
+            gh issue list --state open --search "upstream removed-paths skip" --json number,title --jq '.[].number' | head -1 | while read -r n; do
+              [[ -n "$n" ]] && gh issue comment "$n" --body "Again skipped build because upstream only touched removed paths @ ${{ steps.decide.outputs.upstream_sha }}"
+            done || true
+            if [[ -z "$(gh issue list --state open --search 'upstream removed-paths skip in:title' --json number --jq '.[0].number // empty')" ]]; then
+              gh issue create --title "upstream removed-paths skip" --body "Auto sync skipped build because upstream changes only hit removed-paths. sha=${{ steps.decide.outputs.upstream_sha }}" || true
+            fi
+          fi
+
+  build:
+    name: Build dual APKs
+    needs: sync
+    if: needs.sync.outputs.should_build == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Trigger Android Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh workflow run android-release.yml \
+            --repo "$GITHUB_REPOSITORY" \
+            -r main \
+            -f release_channel=stable \
+            -f prerelease=false \
+            -f sync_cnb=false
+          echo "Triggered android-release.yml on main"

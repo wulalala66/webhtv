@@ -1,0 +1,3 @@
+# if upstream changes these and conflicts with our overlay intent, stop auto build
+app/src/main/java/com/fongmi/android/tv/api/DanmakuApi.java
+app/src/main/java/com/fongmi/android/tv/bean/Config.java
