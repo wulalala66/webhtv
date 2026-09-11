@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "builtin_source_url": "http://114.55.251.49:5244/d/tvbox/vod.json",
+  "update_repo": "wulalala66/webhtv",
+  "build_variants": [
+    "leanbackArmeabi_v7a",
+    "mobileArm64_v8a"
+  ],
+  "files": [
+    {
+      "path": "app/src/main/java/com/fongmi/android/tv/bean/Config.java",
+      "sha256": "bb1b26baa0e4e2b6187dd66ac579ca1671f3336708327422ef084c0dbc19e28b",
+      "mode": "replace"
+    },
+    {
+      "path": "app/src/leanback/java/com/fongmi/android/tv/ui/dialog/ConfigDialog.java",
+      "sha256": "fc09cea7ad95c4017e41607bf5f3bc99fc9cf1a08d03863fdbf027cc63d509c6",
+      "mode": "replace"
+    },
+    {
+      "path": "app/src/mobile/java/com/fongmi/android/tv/ui/dialog/ConfigDialog.java",
+      "sha256": "7ebf3fbeeffcfa20f9c76f2ca439e3d1af59fb4e287e9c323b15ca0b13877d54",
+      "mode": "replace"
+    },
+    {
+      "path": "app/build.gradle",
+      "sha256": "f0ad66c581d2c79bc94fb56344ff2ec05b68d6bdd05e7ad02be8110f94d95f48",
+      "mode": "replace"
+    }
+  ]
+}
