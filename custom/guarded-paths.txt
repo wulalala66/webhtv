@@ -1,0 +1,5 @@
+# if upstream changes these and conflicts with our overlay intent, stop auto build
+app/src/main/java/com/fongmi/android/tv/bean/Config.java
+app/src/leanback/java/com/fongmi/android/tv/ui/dialog/ConfigDialog.java
+app/src/mobile/java/com/fongmi/android/tv/ui/dialog/ConfigDialog.java
+app/build.gradle
